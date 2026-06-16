@@ -37,6 +37,7 @@ const ensureImagePositionColumn = async () => {
 const setupTables = async () => {
   try {
     let tablesExist = false;
+    let databaseExists = true;
     
     // 1. Try querying the 'Product' table to see if it already exists
     try {
@@ -54,15 +55,34 @@ const setupTables = async () => {
       await tempConn.end();
       tablesExist = true;
     } catch (err) {
-      // Table doesn't exist or database doesn't exist
       tablesExist = false;
+      // Check if the database itself does not exist
+      if (err.code === 'ER_BAD_DB_ERROR' || err.errno === 1049) {
+        databaseExists = false;
+      }
     }
 
-    // 2. If tables do not exist, run the database.sql script
+    // 2. If the database does not exist (typically local environment), create it first
+    if (!databaseExists && !isProduction) {
+      console.log(`Database '${DB.database}' does not exist. Creating it first...`);
+      const adminConn = await mysql.createConnection({
+        host: DB.host,
+        port: DB.port,
+        user: DB.user,
+        password: DB.password,
+        ...(isProduction && {
+          ssl: { rejectUnauthorized: false }
+        })
+      });
+      await adminConn.query(`CREATE DATABASE IF NOT EXISTS \`${DB.database}\``);
+      await adminConn.end();
+      console.log(`Database '${DB.database}' created successfully.`);
+    }
+
+    // 3. If tables do not exist, run the database.sql script
     if (!tablesExist) {
-      console.log('Database or Product table does not exist. Initializing schema from database.sql...');
+      console.log('Product table does not exist. Initializing schema from database.sql...');
       
-      // Connect to MySQL server without database first (multipleStatements enabled to run the whole file)
       const connection = await mysql.createConnection({
         host: DB.host,
         port: DB.port,
@@ -78,7 +98,6 @@ const setupTables = async () => {
       const sqlPath = path.join(__dirname, '../../../database.sql');
       if (fs.existsSync(sqlPath)) {
         const sqlContent = fs.readFileSync(sqlPath, 'utf8');
-        // Execute the entire database.sql file (handles CREATE DATABASE, USE, and all CREATE TABLE commands)
         await connection.query(sqlContent);
         console.log('Database and all tables initialized successfully!');
       } else {

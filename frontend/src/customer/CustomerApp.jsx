@@ -19,23 +19,9 @@ function CustomerApp() {
   const phones = usePhones({ enabled: true, showToast });
   const cart = useCart();
 
-  const requireLogin = () => {
-    if (auth.currentUser) return true;
-
-    showToast('Vui lòng đăng nhập để tiếp tục', 'error');
-    auth.navigateTo('login');
-    return false;
-  };
-
   const handleAddToCart = (phone) => {
     cart.addToCart(phone);
     showToast('Đã thêm sản phẩm vào giỏ hàng');
-  };
-
-  const handleCheckout = () => {
-    if (!requireLogin()) return;
-
-    showToast('Chức năng đặt hàng đang được phát triển');
   };
 
   const renderPage = () => {

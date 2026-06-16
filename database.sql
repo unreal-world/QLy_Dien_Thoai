@@ -1,6 +1,5 @@
--- Aiven: database 'defaultdb' is selected via connection config
--- Tables will be created directly in defaultdb
-
+-- Database will be created automatically if it doesn't exist.
+-- Tables will be created directly in the active database.
 
 -- 2. Bảng User
 CREATE TABLE User (
